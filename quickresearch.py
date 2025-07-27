@@ -1,5 +1,6 @@
 from ddgs import DDGS
 from scraper import WebScraper
+from featuredimage import FeaturedImageExtractor
 from langchain_core.runnables import RunnableLambda, RunnableSequence
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -13,16 +14,20 @@ load_dotenv()
 
 
 # WebSearch which returns URLs based on a topic
+current_urls = []
+
 def WebSearch(inputs):
-  topic = inputs["topic"]
-  max_results = inputs["max_results"]
-  with DDGS() as ddgs:
-    results = ddgs.text(topic, max_results=max_results)
-    urls = []
-    for item in results:
-        if "href" in item:
-            urls.append(item["href"])
-    return {'topic': topic, 'urls': urls}
+    global current_urls
+    topic = inputs["topic"]
+    max_results = inputs["max_results"]
+    with DDGS() as ddgs:
+      results = ddgs.text(topic, max_results=max_results)
+      urls = []
+      for item in results:
+          if "href" in item:
+              urls.append(item["href"])
+      current_urls = urls
+      return {'topic': topic, 'urls': urls}
 
 
 # WebScrape which scrapes data from the URLs
@@ -67,7 +72,7 @@ Make sure the excerpt is at most 150 characters. Return only the JSON object.
 )
 
 # Model for generating the blog
-model = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.5)
+model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.5)
 
 structured_model = model.with_structured_output(BlogData)
 
@@ -110,6 +115,21 @@ class BlogRequest(BaseModel):
 
 @app.post("/generate_blog")
 async def generate_blog(request: BlogRequest):
+    global current_urls
+
     output = chain.invoke({"topic": request.topic, "max_results": request.max_results})
     results = convert_to_html(output)
-    return results.model_dump()
+
+    # Featured image extraction
+    extractor = FeaturedImageExtractor()
+    feaatured_image = extractor.get_featured_image(current_urls)
+
+    combined_results = {
+        "blog_data": results.model_dump(),
+        "featured_image": feaatured_image
+    }
+
+    return combined_results
+
+
+# uvicorn quickresearch:app --host 127.0.0.1 --port 8001 --reload
