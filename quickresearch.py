@@ -47,7 +47,7 @@ class BlogData(BaseModel):
     content: str = Field(..., description="Comprehensive and detailed content of the blog in Markdown format")
     tags: list[str] = Field(..., description="Tags for the blog (max 10 tags)")
 
-    @field_validator('excerpt')
+    @field_validator('excerpt', mode='before')
     @classmethod
     def truncate_excerpt(cls, v):
         if len(v) > 200:
@@ -72,7 +72,7 @@ Make sure the excerpt is at most 150 characters. Return only the JSON object.
 )
 
 # Model for generating the blog
-model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.5)
+model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.5)
 
 structured_model = model.with_structured_output(BlogData)
 
@@ -122,11 +122,11 @@ async def generate_blog(request: BlogRequest):
 
     # Featured image extraction
     extractor = FeaturedImageExtractor()
-    feaatured_image = extractor.get_featured_image(current_urls)
+    featured_image = extractor.get_featured_image(current_urls)
 
     combined_results = {
         "blog_data": results.model_dump(),
-        "featured_image": feaatured_image
+        "featured_image": featured_image
     }
 
     return combined_results
