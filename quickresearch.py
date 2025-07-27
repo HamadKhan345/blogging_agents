@@ -4,7 +4,7 @@ from langchain_core.runnables import RunnableLambda, RunnableSequence
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import bleach
 import markdown
 from fastapi import FastAPI
@@ -41,6 +41,13 @@ class BlogData(BaseModel):
     excerpt: str = Field(..., max_length=200, description="Excerpt of the blog (max 150 characters)")
     content: str = Field(..., description="Comprehensive and detailed content of the blog in Markdown format")
     tags: list[str] = Field(..., description="Tags for the blog (max 10 tags)")
+
+    @field_validator('excerpt')
+    @classmethod
+    def truncate_excerpt(cls, v):
+        if len(v) > 200:
+            return v[:200].rstrip()
+        return v
    
 
 # Prompt template for generating the blog
@@ -60,7 +67,7 @@ Make sure the excerpt is at most 150 characters. Return only the JSON object.
 )
 
 # Model for generating the blog
-model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.5)
+model = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.5)
 
 structured_model = model.with_structured_output(BlogData)
 
