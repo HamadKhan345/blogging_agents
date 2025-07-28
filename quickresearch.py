@@ -40,7 +40,7 @@ def WebScrape(inputs):
     scraper = WebScraper()
     data = scraper.scrape_multiple_urls(urls)
     print(scraper.get_summary_stats(data))
-    scraper.save_to_json(data, 'blog_input_data.json')
+    # scraper.save_to_json(data, 'blog_input_data.json')
     return {"topic": topic, "data": data, "word_count": word_count}
 
 
@@ -107,9 +107,9 @@ You MUST return your response as a single, raw JSON object that can be directly 
 )
 
 # Model for generating the blog
-model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.5)
+model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.5)
 
-structured_model = model.with_structured_output(BlogData)
+structured_model = model.with_structured_output(BlogData, method="json_mode")
 
 chain = RunnableSequence(
     RunnableLambda(WebSearch),
@@ -166,8 +166,8 @@ async def generate_blog(request: BlogRequest):
     }
 
     # Save the results to a JSON file
-    with open('blog_output.json', 'w') as f:
-        json.dump(combined_results, f, indent=4)
+    # with open('blog_output.json', 'w') as f:
+    #     json.dump(combined_results, f, indent=4)
 
     return combined_results
 
