@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 import bleach
 import markdown
 from fastapi import FastAPI
+import json
 
 load_dotenv()
 
@@ -20,6 +21,7 @@ def WebSearch(inputs):
     global current_urls
     topic = inputs["topic"]
     max_results = inputs["max_results"]
+    word_count = inputs["word_count"]
     with DDGS() as ddgs:
       results = ddgs.text(topic, max_results=max_results)
       urls = []
@@ -27,25 +29,27 @@ def WebSearch(inputs):
           if "href" in item:
               urls.append(item["href"])
       current_urls = urls
-      return {'topic': topic, 'urls': urls}
+      return {'topic': topic, 'urls': urls, 'word_count': word_count}
 
 
 # WebScrape which scrapes data from the URLs
 def WebScrape(inputs):
     urls = inputs["urls"]
+    word_count = inputs["word_count"]
+    topic = inputs["topic"]
     scraper = WebScraper()
     data = scraper.scrape_multiple_urls(urls)
     print(scraper.get_summary_stats(data))
-    # scraper.save_to_json(data, 'blog_input_data.json')
-    return {"topic": inputs["topic"], "data": data}
+    scraper.save_to_json(data, 'blog_input_data.json')
+    return {"topic": topic, "data": data, "word_count": word_count}
 
 
 # Pydantic model
 class BlogData(BaseModel):
-    title: str = Field(..., description="Title of the blog, SEO optimized")
-    excerpt: str = Field(..., max_length=200, description="Excerpt of the blog (max 150 characters)")
-    content: str = Field(..., description="Comprehensive and detailed content of the blog in Markdown format")
-    tags: list[str] = Field(..., description="Tags for the blog (max 10 tags)")
+    title: str = Field(..., description="Return Title of the blog, SEO optimized")
+    excerpt: str = Field(..., max_length=200, description="Return Excerpt of the blog (max 150 characters)")
+    content: str = Field(..., description="Return a Comprehensive, detailed and well-structured content of the blog in Markdown format")
+    tags: list[str] = Field(..., description="Return List of Tags for the blog (max 10 tags)")
 
     @field_validator('excerpt', mode='before')
     @classmethod
@@ -57,22 +61,53 @@ class BlogData(BaseModel):
 
 # Prompt template for generating the blog
 template = PromptTemplate(
-    template=""" 
-You are an expert human writer and editor. Your goal is to write a comprehensive, detailed, and well-structured blog on the topic: {topic} using the following data: {data}
+    template="""## ROLE & GOAL ##
+You are an expert content creator, a seasoned blogger, and an SEO strategist. Your primary goal is to synthesize the provided research data into a single, cohesive, engaging, and original blog post. This post must be optimized for search engines and provide genuine value to the reader. You are writing for an intelligent audience that appreciates clear, well-structured, and insightful content. THe blog can be upto {word_count} words or more depending on the data and the knowledge.
 
-Return your answer as a JSON object with these fields:
-- title: string (the blog title, SEO optimized)
-- excerpt: string (a summary, **no more than 150 characters**)
-- content: string (the comprehensive and detailed blog content in markdown format)
-- tags: list of strings (relevant tags, max 10 tags)
+---
 
-Make sure the excerpt is at most 150 characters. Return only the JSON object.
-    """,
-    input_variables=["topic", "data"]
+## CONTEXT ##
+You will be given a `topic` and a JSON object `data` containing scraped content from top-ranking articles on that topic. This data is your research material. You must analyze, synthesize, and use it to build your own unique article.
+
+**Topic:** "{topic}"
+**Research Data:** "{data}"
+
+---
+
+## CRITICAL INSTRUCTIONS & WRITING STYLE ##
+- **Originality is Paramount:** Do NOT simply rephrase or merge sentences from the source `data`. You must synthesize the core concepts and information into a new, unique, and well-written article. Your output must be original enough to pass plagiarism checks.
+- **Human-like & Engaging Tone:** Write in a conversational yet authoritative voice. Use contractions (e.g., "it's", "you'll", "can't") to sound natural. Vary your sentence structure to maintain reader engagement.
+- **SEO Optimization:**
+    - The `title` must be catchy, compelling, and include the primary keyword from the topic.
+    - Naturally weave the topic and related keywords throughout the `content`, especially in headings (H2, H3) and the first paragraph. Do not "keyword stuff."
+- **Structure for Readability:**
+    - The `content` must be well-structured using Markdown.
+    - Use H2 tags (`##`) for main sections and H3 tags (`###`) for sub-sections.
+    - Employ bullet points (`*` or `-`), numbered lists, and **bold text** to break up text and highlight key information.
+- **Avoid AI Clichés:** Strictly avoid generic and robotic phrases like:
+    - "In conclusion..."
+    - "In today's fast-paced world..."
+    - "The world of... is ever-evolving..."
+    - "Unlocking the power of..."
+    - "It's important to note that..."
+    - Start the blog with a strong hook and end with a compelling summary or a final, insightful thought.
+- **Value-Driven Content:** Focus on providing actionable advice, clear explanations, and unique insights derived from synthesizing the provided data. Go beyond the obvious to deliver real value.
+
+---
+
+## REQUIRED OUTPUT FORMAT ##
+You MUST return your response as a single, raw JSON object that can be directly parsed. Do not add any explanatory text, comments, or markdown formatting like ```json before or after the JSON object. The JSON object must have the following keys:
+
+- `title`: An SEO-optimized string for the blog title.
+- `excerpt`: A concise, engaging summary. **Strictly maximum 200 characters.**
+- `content`: The comprehensive, well-structured blog post in Markdown format, following all guidelines above.
+- `tags`: A list of up to 10 relevant string tags.
+""",
+    input_variables=["topic", "data", "word_count"],
 )
 
 # Model for generating the blog
-model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.5)
+model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.5)
 
 structured_model = model.with_structured_output(BlogData)
 
@@ -112,12 +147,13 @@ app = FastAPI()
 class BlogRequest(BaseModel):
     topic: str
     max_results: int = 2
+    word_count: int = 700
 
 @app.post("/generate_blog")
 async def generate_blog(request: BlogRequest):
     global current_urls
 
-    output = chain.invoke({"topic": request.topic, "max_results": request.max_results})
+    output = chain.invoke({"topic": request.topic, "max_results": request.max_results, "word_count": request.word_count})
     results = convert_to_html(output)
 
     # Featured image extraction
@@ -128,6 +164,10 @@ async def generate_blog(request: BlogRequest):
         "blog_data": results.model_dump(),
         "featured_image": featured_image
     }
+
+    # Save the results to a JSON file
+    with open('blog_output.json', 'w') as f:
+        json.dump(combined_results, f, indent=4)
 
     return combined_results
 
