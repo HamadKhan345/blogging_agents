@@ -148,6 +148,7 @@ class BlogRequest(BaseModel):
     topic: str
     max_results: int = 2
     word_count: int = 700
+    scrape_thumbnail: bool = False
 
 @app.post("/generate_blog")
 async def generate_blog(request: BlogRequest):
@@ -157,9 +158,17 @@ async def generate_blog(request: BlogRequest):
     results = convert_to_html(output)
 
     # Featured image extraction
-    extractor = FeaturedImageExtractor()
-    featured_image = extractor.get_featured_image(current_urls)
+    featured_image = None
+    if request.scrape_thumbnail:
+        extractor = FeaturedImageExtractor()
+        featured_image = extractor.get_featured_image(current_urls)
 
+    if featured_image is None:
+        featured_image = {
+            "success": False,
+            "image_url": None,
+        }
+    
     combined_results = {
         "blog_data": results.model_dump(),
         "featured_image": featured_image
