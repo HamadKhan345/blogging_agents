@@ -44,3 +44,8 @@ staticfiles/
 # OS specific
 .DS_Store
 Thumbs.db
+
+testing.py
+blog_output_before.json
+blog_output_converted_to_html
+blog_output.json
