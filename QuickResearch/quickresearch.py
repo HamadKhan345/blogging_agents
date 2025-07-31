@@ -37,7 +37,7 @@ def WebScrape(inputs):
     scraper = WebScraper()
     data = scraper.scrape_multiple_urls(urls)
     print(scraper.get_summary_stats(data))
-    # scraper.save_to_json(data, 'blog_input_data.json')
+    # scraper.save_to_json(data, '../Testing/blog_input_data.json')
     return {"topic": topic, "data": data, "word_count": word_count}
 
 
@@ -135,7 +135,7 @@ async def generate_blog(request: BlogRequest):
     global current_urls
 
     output = chain.invoke({"topic": request.topic, "max_results": request.max_results, "word_count": request.word_count})
-    with open('blog_output_before.json', 'w') as f:
+    with open('../Testing/blog_output_before.json', 'w') as f:
         json.dump(output.model_dump(), f, indent=4)
 
     # Convert Markdown to HTML
@@ -160,7 +160,7 @@ async def generate_blog(request: BlogRequest):
     }
 
     # Save the results to a JSON file
-    with open('blog_output_converted_to_html.json', 'w') as f:
+    with open('../Testing/blog_output_converted_to_html.json', 'w') as f:
         json.dump(combined_results, f, indent=4)
 
     return combined_results
