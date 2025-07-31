@@ -10,6 +10,7 @@ import bleach
 import markdown
 from fastapi import FastAPI
 import json
+import re
 
 load_dotenv()
 
@@ -62,7 +63,7 @@ class BlogData(BaseModel):
 # Prompt template for generating the blog
 template = PromptTemplate(
     template="""## ROLE & GOAL ##
-You are an expert content creator, a seasoned blogger, and an SEO strategist. Your primary goal is to synthesize the provided research data into a single, cohesive, engaging, and original blog post. This post must be optimized for search engines and provide genuine value to the reader. You are writing for an intelligent audience that appreciates clear, well-structured, and insightful content. THe blog can be upto {word_count} words or more depending on the data and the knowledge.
+You are an expert content creator, a seasoned blogger, and an SEO strategist. Your primary goal is to synthesize the provided research data into a single, cohesive, engaging, and original blog post. This post must be optimized for search engines and provide genuine value to the reader. You are writing for an intelligent audience that appreciates clear, well-structured, and insightful content. The blog can be upto {word_count} words or more depending on the data and the knowledge.
 
 ---
 
@@ -107,7 +108,7 @@ You MUST return your response as a single, raw JSON object that can be directly 
 )
 
 # Model for generating the blog
-model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.5)
+model = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.5, max_tokens=65536, thinking_budget = 32768, max_retries=10)
 
 structured_model = model.with_structured_output(BlogData, method="json_mode")
 
@@ -120,10 +121,16 @@ chain = RunnableSequence(
 
 # output = chain.invoke({"topic": "how to create html website, give me code", "max_results": 2})
 
+# Function to add blank line before any line starting with * or - if not already preceded by a blank line
+def fix_markdown_lists(md: str) -> str:
+    fixed = re.sub(r'([^\n])\n([ \t]*[\*\-] )', r'\1\n\n\2', md)
+    return fixed
 
 # Function to convert Markdown content to HTML and clean it
 def convert_to_html(output):
-    html_content = markdown.markdown(output.content)
+    # Fix markdown
+    fixed_md = fix_markdown_lists(output.content)
+    html_content = markdown.markdown(fixed_md)
     allowed_tags = [
     'p', 'strong', 'em', 'u', 'ol', 'ul', 'li', 'blockquote', 'a', 'br',
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'code', 'pre', 's', 'img', 'video', 'div'
@@ -155,6 +162,8 @@ async def generate_blog(request: BlogRequest):
     global current_urls
 
     output = chain.invoke({"topic": request.topic, "max_results": request.max_results, "word_count": request.word_count})
+    with open('blog_output_before.json', 'w') as f:
+        json.dump(output.model_dump(), f, indent=4)
     results = convert_to_html(output)
 
     # Featured image extraction
@@ -175,8 +184,8 @@ async def generate_blog(request: BlogRequest):
     }
 
     # Save the results to a JSON file
-    # with open('blog_output.json', 'w') as f:
-    #     json.dump(combined_results, f, indent=4)
+    with open('blog_output_converted_to_html.json', 'w') as f:
+        json.dump(combined_results, f, indent=4)
 
     return combined_results
 
