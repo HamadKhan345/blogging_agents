@@ -1,9 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import json
-import re
-from urllib.parse import urljoin, urlparse
-from typing import List, Dict, Optional
+from typing import List, Dict
 import time
 from newspaper import Article
 

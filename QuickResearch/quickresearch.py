@@ -1,16 +1,14 @@
-from ddgs import DDGS
-from scraper import WebScraper
-from featuredimage import FeaturedImageExtractor
+from Tools.scraper import WebScraper
+from Tools.search import Search
+from Tools.featuredimage import FeaturedImageExtractor
+from Markdown.toHTML import MarkdownToHTMLConverter
 from langchain_core.runnables import RunnableLambda, RunnableSequence
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
-import bleach
-import markdown
 from fastapi import FastAPI
 import json
-import re
 
 load_dotenv()
 
@@ -23,14 +21,12 @@ def WebSearch(inputs):
     topic = inputs["topic"]
     max_results = inputs["max_results"]
     word_count = inputs["word_count"]
-    with DDGS() as ddgs:
-      results = ddgs.text(topic, max_results=max_results)
-      urls = []
-      for item in results:
-          if "href" in item:
-              urls.append(item["href"])
-      current_urls = urls
-      return {'topic': topic, 'urls': urls, 'word_count': word_count}
+
+    # Search for URLs related to the topic
+    search = Search()
+    urls = search.search(topic, max_results)
+    current_urls = urls
+    return {'topic': topic, 'urls': urls, 'word_count': word_count}
 
 
 # WebScrape which scrapes data from the URLs
@@ -119,29 +115,6 @@ chain = RunnableSequence(
     structured_model,
 )
 
-# output = chain.invoke({"topic": "how to create html website, give me code", "max_results": 2})
-
-# Function to add blank line before any line starting with * or - if not already preceded by a blank line
-def fix_markdown_lists(md: str) -> str:
-    fixed = re.sub(r'([^\n])\n([ \t]*[\*\-] )', r'\1\n\n\2', md)
-    return fixed
-
-# Function to convert Markdown content to HTML and clean it
-def convert_to_html(output):
-    # Fix markdown
-    fixed_md = fix_markdown_lists(output.content)
-    html_content = markdown.markdown(fixed_md)
-    allowed_tags = [
-    'p', 'strong', 'em', 'u', 'ol', 'ul', 'li', 'blockquote', 'a', 'br',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'code', 'pre', 's', 'img', 'video', 'div'
-    ]
-    clean_html = bleach.clean(html_content, tags=allowed_tags, strip=True)
-    output.content = clean_html
-    return output
-
-# results = convert_to_html(output)
-
-
 
 
 # Save the results to a JSON file
@@ -164,7 +137,10 @@ async def generate_blog(request: BlogRequest):
     output = chain.invoke({"topic": request.topic, "max_results": request.max_results, "word_count": request.word_count})
     with open('blog_output_before.json', 'w') as f:
         json.dump(output.model_dump(), f, indent=4)
-    results = convert_to_html(output)
+
+    # Convert Markdown to HTML
+    toHTML = MarkdownToHTMLConverter()
+    results = toHTML.convert_to_html(output)
 
     # Featured image extraction
     featured_image = None
@@ -190,4 +166,4 @@ async def generate_blog(request: BlogRequest):
     return combined_results
 
 
-# uvicorn quickresearch:app --host 127.0.0.1 --port 8001 --reload
+# uvicorn QuickResearch.quickresearch:app --host 127.0.0.1 --port 8001 --reload
