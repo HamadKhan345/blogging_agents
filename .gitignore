@@ -46,6 +46,7 @@ staticfiles/
 Thumbs.db
 
 testing.py
+testing.html
 blog_output_before.json
-blog_output_converted_to_html
+blog_output_converted_to_html.json
 blog_output.json
