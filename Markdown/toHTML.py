@@ -11,15 +11,34 @@ class MarkdownToHTMLConverter:
         fixed = re.sub(r'([^\n])\n([ \t]*[\*\-] )', r'\1\n\n\2', md)
         return fixed
 
+
     # Function to convert Markdown content to HTML and clean it
     def convert_to_html(self, output):
-        # Fix markdown
+        # Fix markdown lists
         fixed_md = self.fix_markdown_lists(output.content)
-        html_content = markdown.markdown(fixed_md)
+
+
+        # Convert markdown to HTML with table support
+        html_content = markdown.markdown(
+            fixed_md, 
+            extensions=['tables', 'fenced_code']
+        )
+        
         allowed_tags = [
-        'p', 'strong', 'em', 'u', 'ol', 'ul', 'li', 'blockquote', 'a', 'br',
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'code', 'pre', 's', 'img', 'video', 'div'
+            'p', 'strong', 'em', 'u', 's', 'br', 'span',
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'ul', 'ol', 'li',
+            'a', 'blockquote', 'code', 'pre',
+            'table', 'thead', 'tbody', 'tr', 'th', 'td',
+            'img', 'figure', 'figcaption',
+            'iframe', 'video', 'div'
         ]
-        clean_html = bleach.clean(html_content, tags=allowed_tags, strip=True)
+        
+        clean_html = bleach.clean(
+            html_content, 
+            tags=allowed_tags, 
+            strip=True
+        )
+        
         output.content = clean_html
         return output

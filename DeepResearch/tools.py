@@ -2,11 +2,12 @@ from Tools.search import Search
 from Tools.scraper import WebScraper
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
+from typing import Optional
 
 # Search Tool
 class SearchTool(BaseModel):
     topic: str = Field(..., description="The search topic.")
-    max_results: int = Field(10, description="The maximum number of results to return.")
+    max_results: Optional[int] = Field(10, description="The maximum number of results to return.")
 
 
 search = Search()
@@ -18,7 +19,8 @@ web_search_tool = StructuredTool(
     args_schema=SearchTool,
 )
 # Example
-# results = web_search_tool.invoke({"topic": "Python programming", "max_results": 5})
+# results = web_search_tool.invoke({"topic": "Python programming"})
+print(web_search_tool.args)
 # print(results)
 
 
@@ -42,6 +44,7 @@ web_scraper_tool = StructuredTool(
 all_tools = [web_search_tool, web_scraper_tool]
 
 
-
+# Workflow
+# Create -> Bind -> Call -> Execute
 
 
