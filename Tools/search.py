@@ -18,7 +18,7 @@ class Search:
           results = ddgs.text(topic, max_results=max_results)
           urls = []
           for item in results:
-              if "href" in item:
+              if "href" in item and not item["href"].lower().endswith(".pdf"):
                   urls.append(item["href"])
         return urls
     
@@ -35,5 +35,9 @@ class Search:
         """
 
         with DDGS() as ddgs:
-          results = ddgs.text(topic, max_results=max_results)
-          return results
+            results = ddgs.text(topic, max_results=max_results)
+            filtered_results = [
+                item for item in results
+                if "href" in item and not item["href"].lower().endswith(".pdf")
+            ]
+            return filtered_results

@@ -107,12 +107,14 @@ You MUST return your response as a single, raw JSON object that can be directly 
 - `excerpt`: A concise, engaging summary. **Strictly maximum 200 characters.**
 - `content`: The comprehensive, well-structured blog post in Markdown format, following all guidelines above.
 - `tags`: A list of up to 10 relevant string tags.
+
+Respond ONLY with this JSON object. Do NOT include any other text or formatting.
 """,
     input_variables=["topic", "data", "word_count"],
 )
 
 # Model for generating the blog
-model = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.5, max_tokens=65536, thinking_budget = 32768, max_retries=10)
+model = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.5, max_tokens=65536, thinking_budget = 5000, max_retries=10)
 
 structured_model = model.with_structured_output(BlogData, method="json_mode")
 
@@ -137,7 +139,8 @@ class BlogRequest(BaseModel):
 async def generate_blog(request: BlogRequest):
     global current_urls
 
-    output = chain.invoke({"topic": request.topic, "max_results": request.max_results, "word_count": request.word_count})
+
+    output = chain.invoke({"topic": request.topic, "max_results": 5, "word_count": request.word_count})
     
     # Temp: Save the output to a JSON file before conversion
     with open('./Testing/blog_output_before.json', 'w') as f:
