@@ -1,6 +1,6 @@
 import re
-import markdown
 import bleach
+import mistune
 
 class MarkdownToHTMLConverter:
     def __init__(self):
@@ -18,12 +18,16 @@ class MarkdownToHTMLConverter:
         fixed_md = self.fix_markdown_lists(output.content)
 
 
-        # Convert markdown to HTML with table support
-        html_content = markdown.markdown(
-            fixed_md, 
-            extensions=['tables', 'fenced_code']
-        )
-        
+        markdown = mistune.create_markdown(plugins=[
+            'strikethrough',
+            'footnotes',
+            'table',
+            'url',
+            'task_lists',
+            'def_list',
+            'math',
+        ])
+        html_content = markdown(fixed_md)        
         allowed_tags = [
             'p', 'strong', 'em', 'u', 's', 'br', 'span',
             'h1', 'h2', 'h3', 'h4', 'h5', 'h6',

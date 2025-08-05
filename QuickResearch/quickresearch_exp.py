@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 from fastapi import FastAPI
 import json
+from google import genai
+from google.genai import types
+
 
 # Temp: Create a Testing directory to save the output files
 import os
@@ -16,6 +19,7 @@ os.makedirs('./Testing', exist_ok=True)
 
 
 load_dotenv()
+client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
 # WebSearch which returns URLs based on a topic
@@ -44,7 +48,7 @@ def WebScrape(inputs):
     print(scraper.get_summary_stats(data))
 
     #Temp: Save the scraped data to a JSON file
-    scraper.save_to_json(data, './Testing/blog_input_data.json')
+    # scraper.save_to_json(data, './Testing/blog_input_data.json')
 
     return {"topic": topic, "data": data, "word_count": word_count}
 
@@ -114,15 +118,39 @@ Respond ONLY with this JSON object. Do NOT include any other text or formatting.
 )
 
 # Model for generating the blog
-model = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.5, max_tokens=65536, thinking_budget = 5000, max_retries=10)
+# model = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.5, max_tokens=65536, thinking_budget = 5000, max_retries=10)
 
-structured_model = model.with_structured_output(BlogData)
+# structured_model = model.with_structured_output(BlogData)
+
+def call_gemini_with_structured_output(inputs):
+    prompt = template.format(**inputs)
+    client = genai.Client()
+
+    config = types.GenerateContentConfig(
+    response_mime_type="application/json",
+    response_schema=BlogData,
+    temperature=0.5,
+    max_output_tokens=65536,
+    )
+
+    response = client.models.generate_content(
+        model="gemini-2.5-pro",
+        contents=prompt,
+        config=config,
+    )
+
+    try:
+        validated = response.parsed 
+        return validated
+    except Exception as e:
+        raise ValueError(f"Error parsing Gemini output: {e}\nRaw output: {response.text}")
+    
+
 
 chain = RunnableSequence(
     RunnableLambda(WebSearch),
     RunnableLambda(WebScrape),
-    template,
-    structured_model,
+    RunnableLambda(call_gemini_with_structured_output),
 )
 
 
@@ -143,8 +171,8 @@ async def generate_blog(request: BlogRequest):
     output = chain.invoke({"topic": request.topic, "max_results": 5, "word_count": request.word_count})
     
     # Temp: Save the output to a JSON file before conversion
-    with open('./Testing/blog_output_before.json', 'w') as f:
-        json.dump(output.model_dump(), f, indent=4)
+    # with open('./Testing/blog_output_before.json', 'w') as f:
+    #     json.dump(output.model_dump(), f, indent=4)
 
     # Convert Markdown to HTML
     toHTML = MarkdownToHTMLConverter()
@@ -168,10 +196,10 @@ async def generate_blog(request: BlogRequest):
     }
 
     # Temp: Save the combined results to a JSON file
-    with open('./Testing/blog_output_converted_to_html.json', 'w') as f:
-        json.dump(combined_results, f, indent=4)
+    # with open('./Testing/blog_output_converted_to_html.json', 'w') as f:
+    #     json.dump(combined_results, f, indent=4)
 
     return combined_results
 
 
-# uvicorn QuickResearch.quickresearch:app --host 127.0.0.1 --port 8001 --reload
+# uvicorn QuickResearch.quickresearch_exp:app --host 127.0.0.1 --port 8001 --reload
