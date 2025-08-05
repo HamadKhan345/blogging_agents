@@ -134,7 +134,7 @@ def call_gemini_with_structured_output(inputs):
     )
 
     response = client.models.generate_content(
-        model="gemini-2.5-pro",
+        model="gemini-2.5-flash",
         contents=prompt,
         config=config,
     )
