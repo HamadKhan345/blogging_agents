@@ -130,7 +130,7 @@ def call_gemini_with_structured_output(inputs):
     response_mime_type="application/json",
     response_schema=BlogData,
     temperature=0.5,
-    max_output_tokens=65536,
+    maxOutputTokens=65536,
     )
 
     response = client.models.generate_content(
@@ -168,7 +168,7 @@ async def generate_blog(request: BlogRequest):
     global current_urls
 
 
-    output = chain.invoke({"topic": request.topic, "max_results": 5, "word_count": request.word_count})
+    output = chain.invoke({"topic": request.topic, "max_results": request.max_results, "word_count": request.word_count})
     
     # Temp: Save the output to a JSON file before conversion
     # with open('./Testing/blog_output_before.json', 'w') as f:
