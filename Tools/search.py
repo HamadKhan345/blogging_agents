@@ -41,3 +41,20 @@ class Search:
                 if "href" in item and not item["href"].lower().endswith(".pdf")
             ]
             return filtered_results
+        
+    def search_list(self, topic:list, max_results_per_topic=2 ) -> list:
+        """
+        Perform a DuckDuckGo search on a list of topics and return unique list of urls.
+
+        Args:
+            topic (list): A list of search topics.
+
+        Returns:
+            List[str]: A list of URLs related to the search topics.
+               
+        """
+
+        urls = []
+        for t in topic:
+            urls.extend(self.search(t, max_results_per_topic))
+        return list(set(urls))
