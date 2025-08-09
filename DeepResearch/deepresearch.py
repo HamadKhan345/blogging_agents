@@ -191,8 +191,8 @@ You will also be given verified facts from the 'data' that are independently ver
 
 def convert_output(state: BlogState):
     convert = MarkdownToHTMLConverter()
-    html_content = convert.convert(state["content"])
-    return {"html_content": html_content}
+    html_content = convert.convert_to_html(state["content"])
+    return {"content": html_content}
     
     
 graph = StateGraph(BlogState)
