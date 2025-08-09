@@ -8,7 +8,7 @@ app = FastAPI()
 
 class BlogRequest(BaseModel):
     topic: str
-    max_results: int = 2
+    max_results: int = 10
     word_count: int = 1000
     scrape_thumbnail: bool = False
     method: str = "quick"
