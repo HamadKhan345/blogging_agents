@@ -26,6 +26,7 @@ client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 current_urls = []
 
 def WebSearch(inputs):
+    print("Searching for URLs related to the topic")
     global current_urls
     topic = inputs["topic"]
     max_results = inputs["max_results"]
@@ -40,6 +41,7 @@ def WebSearch(inputs):
 
 # WebScrape which scrapes data from the URLs
 def WebScrape(inputs):
+    print("Scraping data from the URLs")
     urls = inputs["urls"]
     word_count = inputs["word_count"]
     topic = inputs["topic"]
@@ -145,21 +147,15 @@ chain = RunnableSequence(
 )
 
 
-# Fast Api endpoint to return the results
-app = FastAPI()
 
-class BlogRequest(BaseModel):
-    topic: str
-    max_results: int = 2
-    word_count: int = 700
-    scrape_thumbnail: bool = False
-
-@app.post("/generate_blog")
-async def generate_blog(request: BlogRequest):
-    global current_urls
-
-
-    output = chain.invoke({"topic": request.topic, "max_results": request.max_results, "word_count": request.word_count})
+def run_quick_research(topic: str, max_results: int = 2, word_count: int = 1000, scrape_thumbnail: bool = False):
+    print("Running Quick Research for topic:", topic)
+    inputs = {
+        "topic": topic,
+        "max_results": max_results,
+        "word_count": word_count
+    }
+    output = chain.invoke(inputs)
     
     # Temp: Save the output to a JSON file before conversion
     # with open('./Testing/blog_output_before.json', 'w') as f:
@@ -172,7 +168,7 @@ async def generate_blog(request: BlogRequest):
 
     # Featured image extraction
     featured_image = None
-    if request.scrape_thumbnail:
+    if scrape_thumbnail:
         extractor = FeaturedImageExtractor()
         featured_image = extractor.get_featured_image(current_urls)
 
@@ -187,11 +183,55 @@ async def generate_blog(request: BlogRequest):
         "featured_image": featured_image
     }
 
-    # Temp: Save the combined results to a JSON file
-    # with open('./Testing/blog_output_converted_to_html.json', 'w') as f:
-    #     json.dump(combined_results, f, indent=4)
-
     return combined_results
 
+# Fast Api endpoint to return the results
+# app = FastAPI()
 
-# uvicorn QuickResearch.quickresearch_exp:app --host 127.0.0.1 --port 8001 --reload
+# class BlogRequest(BaseModel):
+#     topic: str
+#     max_results: int = 2
+#     word_count: int = 700
+#     scrape_thumbnail: bool = False
+
+# @app.post("/generate_blog")
+# async def generate_blog(request: BlogRequest):
+#     global current_urls
+
+
+#     output = chain.invoke({"topic": request.topic, "max_results": request.max_results, "word_count": request.word_count})
+    
+#     # Temp: Save the output to a JSON file before conversion
+#     # with open('./Testing/blog_output_before.json', 'w') as f:
+#     #     json.dump(output.model_dump(), f, indent=4)
+
+#     # Convert Markdown to HTML
+#     toHTML = MarkdownToHTMLConverter()
+#     content = toHTML.convert_to_html(output.content)
+#     output.content = content
+
+#     # Featured image extraction
+#     featured_image = None
+#     if request.scrape_thumbnail:
+#         extractor = FeaturedImageExtractor()
+#         featured_image = extractor.get_featured_image(current_urls)
+
+#     if featured_image is None:
+#         featured_image = {
+#             "success": False,
+#             "image_url": None,
+#         }
+    
+#     combined_results = {
+#         "blog_data": output.model_dump(),
+#         "featured_image": featured_image
+#     }
+
+#     # Temp: Save the combined results to a JSON file
+#     # with open('./Testing/blog_output_converted_to_html.json', 'w') as f:
+#     #     json.dump(combined_results, f, indent=4)
+
+#     return combined_results
+
+
+# # uvicorn QuickResearch.quickresearch_exp:app --host 127.0.0.1 --port 8001 --reload

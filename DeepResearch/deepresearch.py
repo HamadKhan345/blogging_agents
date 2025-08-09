@@ -4,6 +4,7 @@ sys.path.append(r'c:\Users\hamad\OneDrive\Desktop\FYP\AI System')
 from QueryPlanner.planner import QueryPlanner
 from Tools.search import Search
 from Tools.scraper import WebScraper
+from Tools.featuredimage import FeaturedImageExtractor
 from Markdown.toHTML import MarkdownToHTMLConverter
 from Google_Genai.googlegenai import google_structured_output
 
@@ -56,6 +57,7 @@ class BlogData(BaseModel):
     
 
 def generate_queries(state:BlogState):
+    print("Generation Search Queries")
     planner = QueryPlanner()
     queries = planner.get_search_query(topic=state["topic"])
     print(f"Generated queries: {queries}")
@@ -63,12 +65,14 @@ def generate_queries(state:BlogState):
 
 
 def get_urls(state: BlogState):
+    print("Searching for URLs based on queries")
     search = Search()
     urls = search.search_list(state["queries"], max_results_per_topic=2)
 
     return {"urls": urls}
     
 def scrape_data(state: BlogState):
+    print("Scraping data from URLs")
     scraper = WebScraper()
     data = scraper.scrape_multiple_urls(state["urls"])
     print(scraper.get_summary_stats(data))
@@ -76,6 +80,7 @@ def scrape_data(state: BlogState):
     return {"data": data}
 
 def summarized_data(state: BlogState):
+    print("Summarizing data")
     prompt_template = PromptTemplate(
         input_variables=["content"],
         template=(
@@ -110,6 +115,7 @@ def summarized_data(state: BlogState):
     return {"summarized_results": summarized_results, "facts_to_verify": facts_to_verify}
 
 def verify_facts(state: BlogState):
+    print("Verifying facts")
     model = google_structured_output()
     prompt_template = PromptTemplate(
         input_variables=["fact", "metadata"],
@@ -138,6 +144,7 @@ def verify_facts(state: BlogState):
 
 
 def generate_blog(state: BlogState):
+    print("Generating blog content")
     prompt_template = PromptTemplate(
     template="""## ROLE & GOAL ##
 You are an expert content creator, a seasoned blogger, and an SEO strategist. Your primary goal is to synthesize the provided research data into a single, cohesive, engaging, and original blog post. This post must be optimized for search engines and provide genuine value to the reader. You are writing for an intelligent audience that appreciates clear, well-structured, and insightful content. The blog can be upto {word_count} words or more depending on the data and the knowledge.
@@ -190,6 +197,7 @@ You will also be given verified facts from the 'data' that are independently ver
     return {"title": blog_data.title, "excerpt": blog_data.excerpt, "content": blog_data.content, "tags": blog_data.tags}
 
 def convert_output(state: BlogState):
+    print("Converting blog content to HTML")
     convert = MarkdownToHTMLConverter()
     html_content = convert.convert_to_html(state["content"])
     return {"content": html_content}
@@ -217,6 +225,39 @@ graph.add_edge('convert_output', END)
 workflow = graph.compile()
 
 
-initial_state = {"topic": "EBITA", "word_count": 1000}
 
-results = workflow.invoke(initial_state)
+def run_deep_research(topic: str, max_results: int = 2, word_count: int = 1000, scrape_thumbnail: bool = False):
+    print("Running Deep Research for topic:", topic)
+    initial_state = {
+        "topic": topic,
+        "word_count": word_count
+    }
+
+    results = workflow.invoke(initial_state)
+
+    blog_data = {
+    "title": results.get("title"),
+    "excerpt": results.get("excerpt"),
+    "content": results.get("content"),
+    "tags": results.get("tags")
+    }
+
+    # Featured image extraction
+    featured_image = None
+    if scrape_thumbnail:
+        extractor = FeaturedImageExtractor()
+        featured_image = extractor.get_featured_image(results.get("urls", []))
+
+    if featured_image is None:
+        featured_image = {
+            "success": False,
+            "image_url": None,
+        }
+    
+    
+    combined_results = {
+        "blog_data": blog_data,
+        "featured_image": featured_image
+    }
+
+    return combined_results
