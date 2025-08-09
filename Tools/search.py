@@ -58,3 +58,20 @@ class Search:
         for t in topic:
             urls.extend(self.search(t, max_results_per_topic))
         return list(set(urls))
+    
+    def search_list_complete(self, topic:list, max_results_per_topic=3 ) -> list[dict]:
+        """
+        Perform a DuckDuckGo search on a list of topics and return complete search results.
+
+        Args:
+            topic (list): A list of search topics.
+
+        Returns:
+            List[dict]: A list of dictionaries, each containing detailed information about a search result, such as title, href, and body.
+               
+        """
+
+        results:list[dict] = []
+        for t in topic:
+            results.extend(self.search_complete(t, max_results_per_topic))
+        return results

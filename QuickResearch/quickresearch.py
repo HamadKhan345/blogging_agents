@@ -139,7 +139,8 @@ async def generate_blog(request: BlogRequest):
 
     # Convert Markdown to HTML
     toHTML = MarkdownToHTMLConverter()
-    results = toHTML.convert_to_html(output)
+    content = toHTML.convert_to_html(output.content)
+    output.content = content
 
     # Featured image extraction
     featured_image = None
@@ -154,7 +155,7 @@ async def generate_blog(request: BlogRequest):
         }
     
     combined_results = {
-        "blog_data": results.model_dump(),
+        "blog_data": output.model_dump(),
         "featured_image": featured_image
     }
 

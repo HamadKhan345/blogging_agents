@@ -69,7 +69,7 @@ class BlogData(BaseModel):
    
 
 # Prompt template for generating the blog
-template = PromptTemplate(
+blog_prompt = PromptTemplate(
     template="""## ROLE & GOAL ##
 You are an expert content creator, a seasoned blogger, and an SEO strategist. Your primary goal is to synthesize the provided research data into a single, cohesive, engaging, and original blog post. This post must be optimized for search engines and provide genuine value to the reader. You are writing for an intelligent audience that appreciates clear, well-structured, and insightful content. The blog can be upto {word_count} words or more depending on the data and the knowledge.
 
@@ -104,15 +104,6 @@ You will be given a `topic` and a JSON object `data` containing scraped content 
 
 ---
 
-## REQUIRED OUTPUT FORMAT ##
-You MUST return your response as a single, raw JSON object that can be directly parsed. Do not add any explanatory text, comments, or markdown formatting like ```json before or after the JSON object. The JSON object must have the following keys:
-
-- `title`: An SEO-optimized string for the blog title.
-- `excerpt`: A concise, engaging summary. **Strictly maximum 200 characters.**
-- `content`: The comprehensive, well-structured blog post in Markdown format, following all guidelines above.
-- `tags`: A list of up to 10 relevant string tags.
-
-Respond ONLY with this JSON object. Do NOT include any other text or formatting.
 """,
     input_variables=["topic", "data", "word_count"],
 )
@@ -123,7 +114,7 @@ Respond ONLY with this JSON object. Do NOT include any other text or formatting.
 # structured_model = model.with_structured_output(BlogData)
 
 def call_gemini_with_structured_output(inputs):
-    prompt = template.format(**inputs)
+    prompt = blog_prompt.format(**inputs)
     client = genai.Client()
 
     config = types.GenerateContentConfig(
@@ -176,7 +167,8 @@ async def generate_blog(request: BlogRequest):
 
     # Convert Markdown to HTML
     toHTML = MarkdownToHTMLConverter()
-    results = toHTML.convert_to_html(output)
+    content = toHTML.convert_to_html(output.content)
+    output.content = content
 
     # Featured image extraction
     featured_image = None
@@ -191,7 +183,7 @@ async def generate_blog(request: BlogRequest):
         }
     
     combined_results = {
-        "blog_data": results.model_dump(),
+        "blog_data": output.model_dump(),
         "featured_image": featured_image
     }
 

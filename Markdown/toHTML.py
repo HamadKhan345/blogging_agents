@@ -13,9 +13,9 @@ class MarkdownToHTMLConverter:
 
 
     # Function to convert Markdown content to HTML and clean it
-    def convert_to_html(self, output):
+    def convert_to_html(self, content):
         # Fix markdown lists
-        fixed_md = self.fix_markdown_lists(output.content)
+        fixed_md = self.fix_markdown_lists(content)
 
 
         markdown = mistune.create_markdown(plugins=[
@@ -44,5 +44,4 @@ class MarkdownToHTMLConverter:
             strip=True
         )
         
-        output.content = clean_html
-        return output
+        return clean_html
