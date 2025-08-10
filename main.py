@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from QuickResearch.quickresearch_exp import run_quick_research
+from QuickResearch.quickresearch import run_quick_research
 from DeepResearch.deepresearch import run_deep_research
 from pydantic import BaseModel
 

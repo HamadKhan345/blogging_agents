@@ -12,7 +12,6 @@ from langgraph.graph import StateGraph, START, END
 from langchain.prompts import PromptTemplate
 from typing import TypedDict, Optional
 from pydantic import BaseModel, Field, field_validator
-from fastapi import FastAPI
 from dotenv import load_dotenv
 load_dotenv()
 

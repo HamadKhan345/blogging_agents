@@ -1,14 +1,17 @@
 from Tools.scraper import WebScraper
 from Tools.search import Search
 from Tools.featuredimage import FeaturedImageExtractor
+from Google_Genai.googlegenai import google_structured_output
 from Markdown.toHTML import MarkdownToHTMLConverter
+
 from langchain_core.runnables import RunnableLambda, RunnableSequence
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
-from fastapi import FastAPI
 import json
+from google import genai
+
 
 # Temp: Create a Testing directory to save the output files
 import os
@@ -16,12 +19,14 @@ os.makedirs('./Testing', exist_ok=True)
 
 
 load_dotenv()
+client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
 # WebSearch which returns URLs based on a topic
 current_urls = []
 
 def WebSearch(inputs):
+    print("Searching for URLs related to the topic")
     global current_urls
     topic = inputs["topic"]
     max_results = inputs["max_results"]
@@ -36,6 +41,7 @@ def WebSearch(inputs):
 
 # WebScrape which scrapes data from the URLs
 def WebScrape(inputs):
+    print("Scraping data from the URLs")
     urls = inputs["urls"]
     word_count = inputs["word_count"]
     topic = inputs["topic"]
@@ -44,7 +50,7 @@ def WebScrape(inputs):
     print(scraper.get_summary_stats(data))
 
     #Temp: Save the scraped data to a JSON file
-    scraper.save_to_json(data, './Testing/blog_input_data.json')
+    # scraper.save_to_json(data, './Testing/blog_input_data.json')
 
     return {"topic": topic, "data": data, "word_count": word_count}
 
@@ -65,7 +71,7 @@ class BlogData(BaseModel):
    
 
 # Prompt template for generating the blog
-template = PromptTemplate(
+blog_prompt = PromptTemplate(
     template="""## ROLE & GOAL ##
 You are an expert content creator, a seasoned blogger, and an SEO strategist. Your primary goal is to synthesize the provided research data into a single, cohesive, engaging, and original blog post. This post must be optimized for search engines and provide genuine value to the reader. You are writing for an intelligent audience that appreciates clear, well-structured, and insightful content. The blog can be upto {word_count} words or more depending on the data and the knowledge.
 
@@ -105,37 +111,36 @@ You will be given a `topic` and a JSON object `data` containing scraped content 
 )
 
 # Model for generating the blog
-model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.5, max_tokens=65536)
+# model = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.5, max_tokens=65536)
 
-structured_model = model.with_structured_output(BlogData)
+# structured_model = model.with_structured_output(BlogData)
+def call_gemini_with_structured_output(inputs):
+    prompt = blog_prompt.format(**inputs)
+    structured_model = google_structured_output()
+    output = structured_model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro", max_tokens=65536, temperature=0.5)
+    return output
+
 
 chain = RunnableSequence(
     RunnableLambda(WebSearch),
     RunnableLambda(WebScrape),
-    template,
-    structured_model,
+    RunnableLambda(call_gemini_with_structured_output),
 )
 
 
-# Fast Api endpoint to return the results
-app = FastAPI()
 
-class BlogRequest(BaseModel):
-    topic: str
-    max_results: int = 2
-    word_count: int = 700
-    scrape_thumbnail: bool = False
-
-@app.post("/generate_blog")
-async def generate_blog(request: BlogRequest):
-    global current_urls
-
-
-    output = chain.invoke({"topic": request.topic, "max_results": request.max_results, "word_count": request.word_count})
+def run_quick_research(topic: str, max_results: int = 2, word_count: int = 1000, scrape_thumbnail: bool = False):
+    print("Running Quick Research for topic:", topic)
+    inputs = {
+        "topic": topic,
+        "max_results": max_results,
+        "word_count": word_count
+    }
+    output = chain.invoke(inputs)
     
     # Temp: Save the output to a JSON file before conversion
-    with open('./Testing/blog_output_before.json', 'w') as f:
-        json.dump(output.model_dump(), f, indent=4)
+    # with open('./Testing/blog_output_before.json', 'w') as f:
+    #     json.dump(output.model_dump(), f, indent=4)
 
     # Convert Markdown to HTML
     toHTML = MarkdownToHTMLConverter()
@@ -144,7 +149,7 @@ async def generate_blog(request: BlogRequest):
 
     # Featured image extraction
     featured_image = None
-    if request.scrape_thumbnail:
+    if scrape_thumbnail:
         extractor = FeaturedImageExtractor()
         featured_image = extractor.get_featured_image(current_urls)
 
@@ -159,11 +164,4 @@ async def generate_blog(request: BlogRequest):
         "featured_image": featured_image
     }
 
-    # Temp: Save the combined results to a JSON file
-    with open('./Testing/blog_output_converted_to_html.json', 'w') as f:
-        json.dump(combined_results, f, indent=4)
-
     return combined_results
-
-
-# uvicorn QuickResearch.quickresearch:app --host 127.0.0.1 --port 8001 --reload
