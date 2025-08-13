@@ -144,6 +144,8 @@ def verify_facts(state: BlogState):
 
 def generate_blog(state: BlogState):
     print("Generating blog content")
+
+
     prompt_template = PromptTemplate(
     template="""## ROLE & GOAL ##
 You are an expert content creator, a seasoned blogger, and an SEO strategist. Your primary goal is to synthesize the provided research data into a single, cohesive, engaging, and original blog post. This post must be optimized for search engines and provide genuine value to the reader. You are writing for an intelligent audience that appreciates clear, well-structured, and insightful content. The blog can be upto {word_count} words or more depending on the data and the knowledge.
@@ -191,7 +193,18 @@ You will also be given verified facts from the 'data' that are independently ver
         word_count=state["word_count"]
     )
     model = google_structured_output()
-    blog_data = model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro")
+    blog_data = None
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:   
+            blog_data = model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro")
+            break
+        except Exception as e:
+            print(f"Error generating blog content: {e}")
+            if attempt <= max_attempts - 1:
+                print("Retrying...")
+            else:
+                raise e
 
     return {"title": blog_data.title, "excerpt": blog_data.excerpt, "content": blog_data.content, "tags": blog_data.tags}
 
