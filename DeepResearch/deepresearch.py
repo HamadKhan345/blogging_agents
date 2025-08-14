@@ -194,14 +194,25 @@ You will also be given verified facts from the 'data' that are independently ver
     )
     model = google_structured_output()
     blog_data = None
-    max_attempts = 3
+    max_attempts = 4
     for attempt in range(max_attempts):
         try:   
             blog_data = model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro")
-            break
+            
+            if (blog_data
+                    and getattr(blog_data, "title", None)
+                    and getattr(blog_data, "content", None)
+                    and getattr(blog_data, "excerpt", None)
+                    and getattr(blog_data, "tags", None)
+                    and isinstance(getattr(blog_data, "tags", None), list)
+                    and len(getattr(blog_data, "tags", [])) > 0
+                ):
+               break
+            raise ValueError("Model returned None or incomplete BlogData")
+        
         except Exception as e:
             print(f"Error generating blog content: {e}")
-            if attempt <= max_attempts - 1:
+            if attempt < max_attempts - 1:
                 print("Retrying...")
             else:
                 raise e

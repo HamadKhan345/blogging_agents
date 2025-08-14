@@ -6,7 +6,6 @@ from Markdown.toHTML import MarkdownToHTMLConverter
 
 from langchain_core.runnables import RunnableLambda, RunnableSequence
 from langchain.prompts import PromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 import json
@@ -117,6 +116,7 @@ You will be given a `topic` and a JSON object `data` containing scraped content 
 def call_gemini_with_structured_output(inputs):
     prompt = blog_prompt.format(**inputs)
     structured_model = google_structured_output()
+    
     output = structured_model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro", max_tokens=65536, temperature=0.5)
     return output
 

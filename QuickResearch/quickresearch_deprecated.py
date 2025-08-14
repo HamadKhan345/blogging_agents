@@ -4,7 +4,7 @@ from Tools.featuredimage import FeaturedImageExtractor
 from Markdown.toHTML import MarkdownToHTMLConverter
 from langchain_core.runnables import RunnableLambda, RunnableSequence
 from langchain.prompts import PromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 from fastapi import FastAPI
@@ -105,15 +105,15 @@ You will be given a `topic` and a JSON object `data` containing scraped content 
 )
 
 # Model for generating the blog
-model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.5, max_tokens=65536)
+# model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.5, max_tokens=65536)
 
-structured_model = model.with_structured_output(BlogData)
+# structured_model = model.with_structured_output(BlogData)
 
 chain = RunnableSequence(
     RunnableLambda(WebSearch),
     RunnableLambda(WebScrape),
     template,
-    structured_model,
+    # structured_model,
 )
 
 

@@ -16,7 +16,7 @@ class google_structured_output:
         response_mime_type="application/json",
         response_schema=pydantic_model,
         temperature=temperature,
-        maxOutputTokens=max_tokens,
+        max_output_tokens=max_tokens,
         )
 
         response = client.models.generate_content(
