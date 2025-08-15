@@ -9,6 +9,7 @@ from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 import json
+import time
 load_dotenv()
 
 
@@ -108,8 +109,33 @@ def call_gemini_with_structured_output(inputs):
     prompt = blog_prompt.format(**inputs)
     structured_model = google_structured_output()
     
-    output = structured_model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro", max_tokens=15000, temperature=0.5, thinking_budget=-1)
-    return output
+    
+    # output = structured_model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-flash", max_tokens=15000, temperature=0.5)
+    max_attempts = 4
+    for attempt in range(max_attempts):
+        try:   
+            blog_data = structured_model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro", max_tokens=15000, temperature=0.5, thinking_budget=-1)
+            
+            if (blog_data
+                    and getattr(blog_data, "title", None)
+                    and getattr(blog_data, "content", None)
+                    and getattr(blog_data, "excerpt", None)
+                    and getattr(blog_data, "tags", None)
+                    and isinstance(getattr(blog_data, "tags", None), list)
+                    and len(getattr(blog_data, "tags", [])) > 0
+                ):
+               break
+            raise ValueError("Model returned None or incomplete BlogData")
+        
+        except Exception as e:
+            print(f"Error generating blog content: {e}")
+            if attempt < max_attempts - 1:
+                print("Retrying in 5 seconds...")
+                time.sleep(5)
+            else:
+                raise e
+    
+    return blog_data
 
 
 chain = RunnableSequence(
@@ -127,32 +153,36 @@ def run_quick_research(topic: str, max_results: int = 2, word_count: int = 1000,
         "max_results": max_results,
         "word_count": word_count
     }
-    output = chain.invoke(inputs)
-    
-    # Temp: Save the output to a JSON file before conversion
-    # with open('./Testing/blog_output_before.json', 'w') as f:
-    #     json.dump(output.model_dump(), f, indent=4)
+    try:
+        output = chain.invoke(inputs)
+        
+        # Temp: Save the output to a JSON file before conversion
+        # with open('./Testing/blog_output_before.json', 'w') as f:
+        #     json.dump(output.model_dump(), f, indent=4)
 
-    # Convert Markdown to HTML
-    toHTML = MarkdownToHTMLConverter()
-    content = toHTML.convert_to_html(output.content)
-    output.content = content
+        # Convert Markdown to HTML
+        toHTML = MarkdownToHTMLConverter()
+        content = toHTML.convert_to_html(output.content)
+        output.content = content
 
-    # Featured image extraction
-    featured_image = None
-    if scrape_thumbnail:
-        extractor = FeaturedImageExtractor()
-        featured_image = extractor.get_featured_image(current_urls)
+        # Featured image extraction
+        featured_image = None
+        if scrape_thumbnail:
+            extractor = FeaturedImageExtractor()
+            featured_image = extractor.get_featured_image(current_urls)
 
-    if featured_image is None:
-        featured_image = {
-            "success": False,
-            "image_url": None,
+        if featured_image is None:
+            featured_image = {
+                "success": False,
+                "image_url": None,
+            }
+        
+        combined_results = {
+            "blog_data": output.model_dump(),
+            "featured_image": featured_image
         }
-    
-    combined_results = {
-        "blog_data": output.model_dump(),
-        "featured_image": featured_image
-    }
 
-    return combined_results
+        return combined_results
+    except Exception as e:
+        print(f"Error in run_quick_research: {e}")
+        return None
