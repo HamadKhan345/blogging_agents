@@ -9,16 +9,7 @@ from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 import json
-from google import genai
-
-
-# Temp: Create a Testing directory to save the output files
-import os
-os.makedirs('./Testing', exist_ok=True)
-
-
 load_dotenv()
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
 # WebSearch which returns URLs based on a topic
@@ -117,7 +108,7 @@ def call_gemini_with_structured_output(inputs):
     prompt = blog_prompt.format(**inputs)
     structured_model = google_structured_output()
     
-    output = structured_model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro", max_tokens=65536, temperature=0.5)
+    output = structured_model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro", max_tokens=15000, temperature=0.5, thinking_budget=-1)
     return output
 
 

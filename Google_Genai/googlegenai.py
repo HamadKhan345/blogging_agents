@@ -3,20 +3,20 @@ from google.genai import types
 from dotenv import load_dotenv
 load_dotenv()
 import os
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
 class google_structured_output:
     def __init__(self):
         pass
     
-    def call_google_structured_output(self, prompt, pydantic_model, model="gemini-2.5-flash", max_tokens=65536, temperature=0.5):
-        client = genai.Client()
+    def call_google_structured_output(self, prompt, pydantic_model, model="gemini-2.5-flash", max_tokens=15000, temperature=0.5, thinking_budget=0):
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
         config = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=pydantic_model,
         temperature=temperature,
         max_output_tokens=max_tokens,
+        thinking_config=types.ThinkingConfig(thinking_budget=thinking_budget)
         )
 
         response = client.models.generate_content(

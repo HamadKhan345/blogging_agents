@@ -197,7 +197,7 @@ You will also be given verified facts from the 'data' that are independently ver
     max_attempts = 4
     for attempt in range(max_attempts):
         try:   
-            blog_data = model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro")
+            blog_data = model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro", max_tokens=15000, temperature=0.5, thinking_budget=-1)
             
             if (blog_data
                     and getattr(blog_data, "title", None)
