@@ -1,0 +1,29 @@
+sudo apt-get update
+sudo apt-get install -y docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+
+sudo usermod -aG docker $USER
+newgrp docker
+docker --version
+
+
+# use you GitHub username if you are using github for storing your docker images
+docker login ghcr.io -u yourusername
+docker pull ghcr.io/yourusername/imagename:latest
+
+
+# Create .env file on EC2
+nano .env
+GOOGLE_API_KEY=AIasdasd
+
+http://51.20.75.90:8000/
+Save and exit (Ctrl+X, then Y, then Enter)
+
+
+docker run -d \
+  --name ai_system \
+  --restart unless-stopped \
+  --env-file .env \
+  -p 8000:8000 \
+  ghcr.io/hamadkhan345/ai_system:latest

@@ -2,7 +2,8 @@ from fastapi import FastAPI, Request
 from QuickResearch.quickresearch import run_quick_research
 from DeepResearch.deepresearch import run_deep_research
 from pydantic import BaseModel
-
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI()
 
