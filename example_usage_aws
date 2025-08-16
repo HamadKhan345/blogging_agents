@@ -8,16 +8,15 @@ newgrp docker
 docker --version
 
 
-# use you GitHub username if you are using github for storing your docker images
+#use you GitHub username if you are using github for storing your docker images
 docker login ghcr.io -u yourusername
 docker pull ghcr.io/yourusername/imagename:latest
 
 
-# Create .env file on EC2
+#Create .env file on EC2
 nano .env
 GOOGLE_API_KEY=AIasdasd
 
-http://51.20.75.90:8000/
 Save and exit (Ctrl+X, then Y, then Enter)
 
 

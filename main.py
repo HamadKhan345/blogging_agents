@@ -14,6 +14,9 @@ class BlogRequest(BaseModel):
     scrape_thumbnail: bool = False
     method: str = "quick"
 
+@app.get("/")
+async def root():
+    return {"message": "AI Blogging Agents API is running", "status": "healthy"}
 
 @app.post("/generate_blog")
 async def generate_blog(request: BlogRequest):
