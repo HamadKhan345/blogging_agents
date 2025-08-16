@@ -11,6 +11,7 @@ from Google_Genai.googlegenai import google_structured_output
 from langgraph.graph import StateGraph, START, END
 from langchain.prompts import PromptTemplate
 from typing import TypedDict, Optional
+import time
 from pydantic import BaseModel, Field, field_validator
 from dotenv import load_dotenv
 load_dotenv()
@@ -213,7 +214,8 @@ You will also be given verified facts from the 'data' that are independently ver
         except Exception as e:
             print(f"Error generating blog content: {e}")
             if attempt < max_attempts - 1:
-                print("Retrying...")
+                print("Retrying in 5 seconds...")
+                time.sleep(5)
             else:
                 raise e
 
@@ -255,32 +257,35 @@ def run_deep_research(topic: str, max_results: int = 2, word_count: int = 1000, 
         "topic": topic,
         "word_count": word_count
     }
+    try:
+        results = workflow.invoke(initial_state)
 
-    results = workflow.invoke(initial_state)
-
-    blog_data = {
-    "title": results.get("title"),
-    "excerpt": results.get("excerpt"),
-    "content": results.get("content"),
-    "tags": results.get("tags")
-    }
-
-    # Featured image extraction
-    featured_image = None
-    if scrape_thumbnail:
-        extractor = FeaturedImageExtractor()
-        featured_image = extractor.get_featured_image(results.get("urls", []))
-
-    if featured_image is None:
-        featured_image = {
-            "success": False,
-            "image_url": None,
+        blog_data = {
+        "title": results.get("title"),
+        "excerpt": results.get("excerpt"),
+        "content": results.get("content"),
+        "tags": results.get("tags")
         }
-    
-    
-    combined_results = {
-        "blog_data": blog_data,
-        "featured_image": featured_image
-    }
 
-    return combined_results
+        # Featured image extraction
+        featured_image = None
+        if scrape_thumbnail:
+            extractor = FeaturedImageExtractor()
+            featured_image = extractor.get_featured_image(results.get("urls", []))
+
+        if featured_image is None:
+            featured_image = {
+                "success": False,
+                "image_url": None,
+            }
+        
+        
+        combined_results = {
+            "blog_data": blog_data,
+            "featured_image": featured_image
+        }
+
+        return combined_results
+    except Exception as e:
+        print(f"Error in run_deep_research: {e}")
+        return None
