@@ -109,6 +109,7 @@ def summarized_data(state: BlogState):
         summarized_results[title]  = summary.summary
         if summary.facts_to_verify:  
             facts_to_verify.extend(summary.facts_to_verify)
+        time.sleep(7)
 
     facts_to_verify = list(set(facts_to_verify))
       
@@ -139,6 +140,7 @@ def verify_facts(state: BlogState):
             prompt = prompt_template.format(fact=fact, metadata=metadata_str)
             verification = model.call_google_structured_output(prompt=prompt, pydantic_model=FactVerification, model="gemini-2.5-flash")
             verified_facts.append(verification.model_dump())
+            time.sleep(7)
       
     return {"verified_facts": verified_facts}
 
@@ -198,7 +200,7 @@ You will also be given verified facts from the 'data' that are independently ver
     max_attempts = 4
     for attempt in range(max_attempts):
         try:   
-            blog_data = model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro", max_tokens=15000, temperature=0.5, thinking_budget=-1)
+            blog_data = model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-flash", max_tokens=25000, thinking_budget=10000)
             
             if (blog_data
                     and getattr(blog_data, "title", None)

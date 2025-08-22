@@ -26,3 +26,28 @@ docker run -d \
   --env-file .env \
   -p 8000:8000 \
   ghcr.io/hamadkhan345/ai_system:latest
+
+  ############## changes to code and updation on aws
+
+# In your project directory, build the updated image
+docker build -t ghcr.io/hamadkhan345/ai_system:latest .
+
+# Push the updated image to GitHub Container Registry
+docker push ghcr.io/hamadkhan345/ai_system:latest
+
+
+# ON AWS
+# Stop and remove the old container
+docker stop ai_system
+docker rm ai_system
+
+# Pull the latest image
+docker pull ghcr.io/hamadkhan345/ai_system:latest
+
+# Run the new container with the same settings
+docker run -d \
+  --name ai_system \
+  --restart unless-stopped \
+  --env-file .env \
+  -p 8000:8000 \
+  ghcr.io/hamadkhan345/ai_system:latest

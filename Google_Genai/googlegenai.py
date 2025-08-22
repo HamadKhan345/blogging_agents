@@ -9,7 +9,7 @@ class google_structured_output:
     def __init__(self):
         pass
     
-    def call_google_structured_output(self, prompt, pydantic_model, model="gemini-2.5-flash", max_tokens=15000, temperature=0.5, thinking_budget=0):
+    def call_google_structured_output(self, prompt, pydantic_model, model="gemini-2.5-flash", max_tokens=15000, temperature=0.7, thinking_budget=0):
         client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
         config = types.GenerateContentConfig(
         response_mime_type="application/json",

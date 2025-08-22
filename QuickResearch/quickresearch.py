@@ -63,43 +63,64 @@ class BlogData(BaseModel):
 
 # Prompt template for generating the blog
 blog_prompt = PromptTemplate(
-    template="""## ROLE & GOAL ##
-You are an expert content creator, a seasoned blogger, and an SEO strategist. Your primary goal is to synthesize the provided research data into a single, cohesive, engaging, and original blog post. This post must be optimized for search engines and provide genuine value to the reader. You are writing for an intelligent audience that appreciates clear, well-structured, and insightful content. The blog can be upto {word_count} words or more depending on the data and the knowledge.
+    template="""
+## ROLE & GOAL ##
+You are an expert content creator, seasoned blogger, and SEO strategist.
+Create an **original, engaging, and SEO-optimized blog** using the provided research data.
+Audience: Intelligent readers who prefer clarity and actionable insights.
+Aim for at least {word_count} words (you can exceed if needed).
 
 ---
 
 ## CONTEXT ##
-You will be given a `topic` and a JSON object `data` containing scraped content from top-ranking articles on that topic. This data is your research material. You must analyze, synthesize, and use it to build your own unique article.
-
-**Topic:** "{topic}"
-**Research Data:** "{data}"
+Topic: {topic}  
+Research Data:  
+{data}
 
 ---
 
-## CRITICAL INSTRUCTIONS & WRITING STYLE ##
-- **Originality is Paramount:** Do NOT simply rephrase or merge sentences from the source `data`. You must synthesize the core concepts and information into a new, unique, and well-written article. Your output must be original enough to pass plagiarism checks.
-- **Human-like & Engaging Tone:** Write in a conversational yet authoritative voice. Use contractions (e.g., "it's", "you'll", "can't") to sound natural. Vary your sentence structure to maintain reader engagement.
-- **SEO Optimization:**
-    - The `title` must be catchy, compelling, and include the primary keyword from the topic.
-    - Naturally weave the topic and related keywords throughout the `content`, especially in headings (H2, H3) and the first paragraph. Do not "keyword stuff."
-- **Structure for Readability:**
-    - The `content` must be well-structured using Markdown.
-    - Use H2 tags (`##`) for main sections and H3 tags (`###`) for sub-sections.
-    - Employ bullet points (`*` or `-`), numbered lists, and **bold text** to break up text and highlight key information.
-- **Avoid AI Clichés:** Strictly avoid generic and robotic phrases like:
+## CRITICAL INSTRUCTIONS ##
+### PRIORITY ORDER ###
+1. Originality & factual accuracy
+2. Clear, engaging, human-like writing
+3. SEO optimization and readability
+
+### WRITING RULES ###
+- **Originality:** Do NOT copy or merge sentences. Rewrite ideas uniquely.
+- **Accuracy:** Stick to the given data. Never invent facts.
+- **Style:** Conversational, authoritative, 12th-grade reading level.
+- Use contractions for natural tone.
+- Start with a strong hook (fact, question, or insight).
+- Avoid clickbait intros and AI clichés like:
     - "In conclusion..."
     - "In today's fast-paced world..."
-    - "The world of... is ever-evolving..."
     - "Unlocking the power of..."
-    - "It's important to note that..."
-    - Start the blog with a strong hook and end with a compelling summary or a final, insightful thought.
-- **Value-Driven Content:** Focus on providing actionable advice, clear explanations, and unique insights derived from synthesizing the provided data. Go beyond the obvious to deliver real value.
+- Ensure logical flow and readability.
+
+### STRUCTURE & MARKDOWN ###
+- Use Markdown for full structure:
+    - `##` for main sections, `###` for subsections.
+    - Bullet points, numbered lists, and **bold text** for emphasis.
+    - Where helpful, include:
+        * **Tables** for comparisons or structured data.
+        * **Blockquotes (`>`)** for expert tips or key highlights.
+        * **Inline code** for terms or examples (`like this`).
+        * **Fenced code blocks** for multi-line examples.
+
+
+### SEO RULES ###
+- Include the main keyword in the title and first 100 words.
+- Use related keywords naturally in headings and body (1–2% density).
+- Generate meta description under 160 characters.
+- Ensure scannable sections with headings and visual elements.
 
 ---
 
 """,
     input_variables=["topic", "data", "word_count"],
 )
+
+
 
 # Model for generating the blog
 # model = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.5, max_tokens=65536)
@@ -114,7 +135,7 @@ def call_gemini_with_structured_output(inputs):
     max_attempts = 4
     for attempt in range(max_attempts):
         try:   
-            blog_data = structured_model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.5-pro", max_tokens=15000, temperature=0.5, thinking_budget=-1)
+            blog_data = structured_model.call_google_structured_output(prompt=prompt, pydantic_model=BlogData, model="gemini-2.0-flash", max_tokens=8100, thinking_budget=None)
             
             if (blog_data
                     and getattr(blog_data, "title", None)
