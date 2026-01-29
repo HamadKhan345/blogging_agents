@@ -449,11 +449,3 @@ curl -X POST http://localhost:8001/generate_blog \
 ## 📄 License
 
 This project is proprietary software. All rights reserved.
-
----
-
-<div align="center">
-
-*Automate your content creation with intelligent AI agents*
-
-</div>
